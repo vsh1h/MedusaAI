@@ -175,4 +175,4 @@ Due to size constraints, the raw dataset is not stored in this repository.
 2. Place the file in:
    data/raw/
 
-3. Put the data/raw/ folder in .gitignore
+3. Put the data/raw/ folder in .gitignore to avoid committing large files.
