@@ -176,3 +176,8 @@ Due to size constraints, the raw dataset is not stored in this repository.
    data/raw/
 
 3. Put the data/raw/ folder in .gitignore to avoid committing large files.
+
+To get cleaned data in data/processed/, run the following script:
+```bash
+python3 src/preprocessing/clean_metadata.py
+```
