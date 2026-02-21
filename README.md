@@ -180,6 +180,4 @@ Due to size constraints, the raw dataset is not stored in this repository.
 ```bash
 python3 src/preprocessing/clean_metadata.py
 ```
-
-Make sure the data/processed/ folder is in .gitignore to avoid committing cleaned data.
----
+5. Make sure the data/processed/ folder is in .gitignore to avoid committing cleaned data.
