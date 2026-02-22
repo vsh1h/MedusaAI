@@ -350,3 +350,110 @@ ls -lh data/processed/{topics.json,lda_model.pkl,coherence_results.json,papers_c
 - **Fix:** Use `--sample-size` parameter in coherence step to limit memory usage
 
 ---
+
+## Summarization
+
+This section covers the summarization pipeline for assigning topics to new documents and generating summaries.
+
+### Prerequisites
+Ensure you have completed the topic modeling pipeline and have the following files:
+- `data/processed/lda_model.pkl` - Trained LDA model
+- `data/processed/tfidf_vectorizer.pkl` - Trained TF-IDF vectorizer
+- `data/processed/topics.json` - Topic keywords and semantic labels
+
+---
+
+### Step 1: Topic Inference
+
+Assign topics to new documents using the trained LDA model.
+
+**Command:**
+```bash
+python3 -m src.summarization.topic_inference
+```
+
+**Parameters:**
+- `--input-file`: Path to input JSONL file (default: `data/processed/papers_clean.jsonl`)
+- `--output-file`: Path to output JSONL file (default: `data/processed/papers_with_topics.jsonl`)
+- `--model-path`: Path to LDA model (default: `data/processed/lda_model.pkl`)
+- `--vectorizer-path`: Path to TF-IDF vectorizer (default: `data/processed/tfidf_vectorizer.pkl`)
+- `--topics-path`: Path to topics JSON (default: `data/processed/topics.json`)
+
+**Outputs:**
+- `data/processed/papers_with_topics.jsonl` - Papers with assigned topic IDs and keywords
+
+**Example Output:**
+```json
+{"id": "0704.0001", "text": "We study quantum entanglement...", "topic_id": 0, "keywords": ["quantum", "entanglement", "model"]}
+```
+
+---
+
+### Step 2: Topic-Based Summarization
+
+Generate summaries for papers based on their assigned topics.
+
+**Command:**
+```bash
+python3 -m src.summarization.topic_summarizer
+```
+
+**Parameters:**
+- `--input-file`: Path to input JSONL file (default: `data/processed/papers_with_topics.jsonl`)
+- `--output-file`: Path to output JSONL file (default: `data/processed/papers_with_summaries.jsonl`)
+- `--topics-path`: Path to topics JSON (default: `data/processed/topics.json`)
+- `--max-length`: Maximum summary length (default: 150)
+- `--min-length`: Minimum summary length (default: 50)
+
+**Outputs:**
+- `data/processed/papers_with_summaries.jsonl` - Papers with generated summaries
+
+**Example Output:**
+```json
+{"id": "0704.0001", "text": "We study quantum entanglement...", "topic_id": 0, "keywords": ["quantum", "entanglement", "model"], "summary": "This paper studies quantum entanglement in many-body systems and analyzes phase transition behavior using numerical simulations."}
+```
+
+---
+
+### Complete Pipeline Execution
+
+Run both steps sequentially for 100k documents:
+
+```bash
+# Step 1: Topic Inference
+python3 -m src.summarization.topic_inference 
+
+
+# Step 2: Topic-Based Summarization
+python3 -m src.summarization.topic_summarizer 
+```
+
+
+
+---
+
+### Verify Output Files
+
+Check that all standard files are generated:
+
+```bash
+ls -lh data/processed/{papers_with_topics.jsonl,papers_with_summaries.jsonl}
+```
+
+**Expected Files:**
+- `papers_with_topics.jsonl` - Papers with topic assignments
+- `papers_with_summaries.jsonl` - Papers with summaries (10MB+ for 100k docs)
+
+---
+
+### Troubleshooting
+
+**Issue:** `KeyError: 'words'` in topic_summarizer.py
+- **Fix:** Update to latest version that skips `semantic_labels` key
+
+**Issue:** Summaries are too long/short
+- **Fix:** Adjust `--max-length` and `--min-length` parameters in topic_summarizer
+
+**Issue:** Topic inference fails on large dataset
+- **Fix:** Reduce `--input-file` size for testing (e.g., 1000 papers)
+
