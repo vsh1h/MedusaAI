@@ -267,7 +267,7 @@ def show_input_page():
             # Load generated header image
             header_img_path = "/Users/kirtig/.gemini/antigravity/brain/a61ef82e-815f-4978-82a0-5d2805dfbafa/research_analysis_header_1771855161620.png"
             if os.path.exists(header_img_path):
-                st.image(header_img_path, use_container_width=True)
+                st.image(header_img_path, width='stretch')
             else:
                 st.info("Header image not found.")
 
