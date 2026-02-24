@@ -289,7 +289,7 @@ def show_input_page():
                     st.warning("Please provide keywords or upload at least one paper.")
 
         with col2:
-            st.image("src/ui/assets/header.png", use_container_width=True)
+            st.image("src/ui/assets/header.png",width='stretch')
 
 def show_results_page():
     res = st.session_state.results
