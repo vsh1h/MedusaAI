@@ -9,3 +9,4 @@ data/processed/
 data/
 *.npy
 *.joblib
+model_files.zip

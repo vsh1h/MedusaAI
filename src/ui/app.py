@@ -8,6 +8,7 @@ import pandas as pd
 from pathlib import Path
 from pypdf import PdfReader
 from PIL import Image
+import zipfile
 CHECK_FILE = Path("data/processed/embeddings.npy")
 if not CHECK_FILE.exists():
     os.makedirs("data/processed", exist_ok=True)
@@ -22,7 +23,8 @@ if not CHECK_FILE.exists():
         quiet=False
     )
 
-    os.system(f"unzip {zip_path}")
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(".")
 # Add project root to sys.path to resolve 'src' imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
@@ -279,13 +281,7 @@ def show_input_page():
                     st.warning("Please provide keywords or upload at least one paper.")
 
         with col2:
-            # Load generated header image
-            header_img_path = "/Users/kirtig/.gemini/antigravity/brain/a61ef82e-815f-4978-82a0-5d2805dfbafa/research_analysis_header_1771855161620.png"
-            if os.path.exists(header_img_path):
-                # st.image(header_img_path, width='stretch')
-                st.image("src/ui/assets/header.png", use_container_width=True)
-            else:
-                st.info("Header image not found.")
+            st.image("src/ui/assets/header.png", use_container_width=True)
 
 def show_results_page():
     res = st.session_state.results
