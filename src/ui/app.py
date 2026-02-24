@@ -1,4 +1,5 @@
 import gdown
+import nltk
 import streamlit as st
 import os
 import sys
@@ -9,7 +10,14 @@ from pathlib import Path
 from pypdf import PdfReader
 from PIL import Image
 import zipfile
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt")
+    nltk.download("punkt_tab")
+    
 CHECK_FILE = Path("data/processed/embeddings.npy")
+
 if not CHECK_FILE.exists():
     os.makedirs("data/processed", exist_ok=True)
 
