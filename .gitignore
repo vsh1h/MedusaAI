@@ -6,3 +6,6 @@ __pycache__/
 .ipynb_checkpoints/
 data/raw/
 data/processed/
+data/
+*.npy
+*.joblib
