@@ -213,6 +213,7 @@ python3 -m src.topic_modeling.vectorize --max-docs 100000 --min-df 20 --max-df 0
 - `data/processed/document_term_matrix_tfidf.npz` - Sparse TF-IDF matrix
 - `data/processed/tfidf_vocabulary.json` - Vocabulary list
 - `data/processed/tfidf_documents.json` - Document IDs
+- `data/processed/tfidf_vectorizer.pkl` - Serialized TF-IDF vectorizer (Required for Inference)
 
 **Quick Test (5k docs):**
 ```bash
@@ -351,109 +352,107 @@ ls -lh data/processed/{topics.json,lda_model.pkl,coherence_results.json,papers_c
 
 ---
 
-## Summarization
+## Summarization & Topic Inference
 
-This section covers the summarization pipeline for assigning topics to new documents and generating summaries.
+This section covers the summarization pipeline where we identify themes and generate concise extractive summaries for research papers.
+
+### Folder Structure: `src/summarization/`
+| File | Responsibility |
+| :--- | :--- |
+| `summarizer.py` | Core ranking logic using TF-IDF and topic keywords to select representative sentences. |
+| `topic_inference.py` | Assigns a topic ID to unseen text using the trained LDA model and TF-IDF vectorizer. |
+| `generate_summaries.py` | **Main Pipeline Script.** Processes the dataset to generate topic-aware summaries. |
+| `build_summary_dataset.py` | Utility for batch-processing raw metadata into a structured JSONL format. |
 
 ### Prerequisites
 Ensure you have completed the topic modeling pipeline and have the following files:
 - `data/processed/lda_model.pkl` - Trained LDA model
 - `data/processed/tfidf_vectorizer.pkl` - Trained TF-IDF vectorizer
-- `data/processed/topics.json` - Topic keywords and semantic labels
+- `data/processed/topics.json` - Topic keywords
 
 ---
 
-### Step 1: Topic Inference
+### Step 1: Generate Topic-Aware Summaries
 
-Assign topics to new documents using the trained LDA model.
+This script processes the raw metadata, detects the latent topic for each paper, and generates a 3-sentence extractive summary using TF-IDF ranking.
 
 **Command:**
 ```bash
-python3 -m src.summarization.topic_inference
+python3 -m src.summarization.generate_summaries
 ```
 
-**Parameters:**
-- `--input-file`: Path to input JSONL file (default: `data/processed/papers_clean.jsonl`)
-- `--output-file`: Path to output JSONL file (default: `data/processed/papers_with_topics.jsonl`)
-- `--model-path`: Path to LDA model (default: `data/processed/lda_model.pkl`)
-- `--vectorizer-path`: Path to TF-IDF vectorizer (default: `data/processed/tfidf_vectorizer.pkl`)
-- `--topics-path`: Path to topics JSON (default: `data/processed/topics.json`)
+**Outputs Produced:**
+- `data/processed/papers_with_summary.jsonl` - The master file containing ID, Title, Topic ID, and generated Summary.
 
-**Outputs:**
-- `data/processed/papers_with_topics.jsonl` - Papers with assigned topic IDs and keywords
-
-**Example Output:**
-```json
-{"id": "0704.0001", "text": "We study quantum entanglement...", "topic_id": 0, "keywords": ["quantum", "entanglement", "model"]}
-```
+**Features:**
+- **Topic Relevance:** Prioritizes sentences containing topic-specific keywords.
+- **Information Density:** Uses TF-IDF to select the most "meaningful" sentences.
+- **Position Bias:** Favors introductory and concluding sentences.
 
 ---
 
-### Step 2: Topic-Based Summarization
+## Semantic Research Search Engine
 
-Generate summaries for papers based on their assigned topics.
+The search module uses **Sentence Embeddings** to provide semantic search capabilities, allowing you to find papers by meaning rather than just matching keywords.
+
+### Folder Structure: `src/search/`
+| File | Responsibility |
+| :--- | :--- |
+| `build_metadata.py` | Creates a lightweight index for the search engine to use. |
+| `build_embeddings.py` | **Vectorization Script.** Converts summaries into numerical vectors using Transformers. |
+| `search_engine.py` | **User Interface.** Interactive CLI for querying the database and viewing results. |
+| `merge_titles.py` | Helper script to ensure all paper metadata (like titles) is correctly aligned. |
+
+### Step 1: Build Search Metadata
+
+Extract necessary fields (ID, Topic, Summary) into a lightweight JSON file for the search engine to use.
 
 **Command:**
 ```bash
-python3 -m src.summarization.topic_summarizer
-```
-
-**Parameters:**
-- `--input-file`: Path to input JSONL file (default: `data/processed/papers_with_topics.jsonl`)
-- `--output-file`: Path to output JSONL file (default: `data/processed/papers_with_summaries.jsonl`)
-- `--topics-path`: Path to topics JSON (default: `data/processed/topics.json`)
-- `--max-length`: Maximum summary length (default: 150)
-- `--min-length`: Minimum summary length (default: 50)
-
-**Outputs:**
-- `data/processed/papers_with_summaries.jsonl` - Papers with generated summaries
-
-**Example Output:**
-```json
-{"id": "0704.0001", "text": "We study quantum entanglement...", "topic_id": 0, "keywords": ["quantum", "entanglement", "model"], "summary": "This paper studies quantum entanglement in many-body systems and analyzes phase transition behavior using numerical simulations."}
+python3 -m src.search.build_metadata
 ```
 
 ---
 
-### Complete Pipeline Execution
+### Step 2: Generate Vector Embeddings
 
-Run both steps sequentially for 100k documents:
+Convert all generated summaries into numerical vectors using the `all-MiniLM-L6-v2` Transformer model.
 
+**Command:**
 ```bash
-# Step 1: Topic Inference
-python3 -m src.summarization.topic_inference 
-
-
-# Step 2: Topic-Based Summarization
-python3 -m src.summarization.topic_summarizer 
+python3 -m src.search.build_embeddings
 ```
 
-
+**Outputs Produced:**
+- `data/processed/embeddings.npy` - Binary file containing the vector space for semantic search.
+- `data/processed/metadata.json` - Compact index mapping vectors to paper details.
 
 ---
 
-### Verify Output Files
+### Step 3: Multi-Module Search Execution
 
-Check that all standard files are generated:
+Launch the interactive search engine to query the processed research database.
 
+**Command:**
 ```bash
-ls -lh data/processed/{papers_with_topics.jsonl,papers_with_summaries.jsonl}
+python3 -m src.search.search_engine
 ```
 
-**Expected Files:**
-- `papers_with_topics.jsonl` - Papers with topic assignments
-- `papers_with_summaries.jsonl` - Papers with summaries (10MB+ for 100k docs)
+**Features:**
+- **Semantic Matching:** Finds relevant papers even if they don't share exact keywords with your query.
+- **Topic Insights:** Provides a bulleted "Topic Insight" summary of the top search results.
+- **Relevance Scoring:** Ranks papers by cosine similarity (0.0 to 1.0).
 
 ---
 
 ### Troubleshooting
 
-**Issue:** `KeyError: 'words'` in topic_summarizer.py
-- **Fix:** Update to latest version that skips `semantic_labels` key
+**Issue:** `ModuleNotFoundError` for `sentence_transformers`
+- **Fix:** Run `pip install sentence-transformers`
 
-**Issue:** Summaries are too long/short
-- **Fix:** Adjust `--max-length` and `--min-length` parameters in topic_summarizer
+**Issue:** `embeddings.npy` not found
+- **Fix:** Ensure you have run `generate_summaries.py` first, then `build_metadata.py` and `build_embeddings.py`.
 
-**Issue:** Topic inference fails on large dataset
-- **Fix:** Reduce `--input-file` size for testing (e.g., 1000 papers)
+**Issue:** Summaries are too short
+- **Fix:** Adjust the `top_n` parameter in `src/summarization/summarizer.py`.
 
